@@ -214,5 +214,18 @@ function renderDiscussionDetailsView(discussionData) {
     function getObjectDetails(r){renderView(`Loading details...`,'<div class="gts-message">Loading details...</div>',true);const t=r.objectType.toUpperCase();let u='';if(t==='ROW'){u=`${SMARTSHEET_API_BASE_URL}/sheets/${r.parentObjectId}/rows/${r.objectId}?include=discussions,attachments,columns`;}else if(t==='DISCUSSION'){u=`${SMARTSHEET_API_BASE_URL}/sheets/${r.parentObjectId}/discussions/${r.objectId}?include=comments`;}else{renderView('Unsupported Type',`<div class="gts-error">Cannot get details for object type: ${r.objectType}</div>`,true);return;}GM_xmlhttpRequest({method:'GET',url:u,headers:{'Authorization':`Bearer ${SMARTSHEET_API_KEY}`},onload:s=>{if(s.status>=200&&s.status<300){try{if(!s.responseText.trim()){throw new Error("Response body is empty.");}const d=JSON.parse(s.responseText);if(t==='ROW')renderRowDetailsView(d);else if(t==='DISCUSSION')renderDiscussionDetailsView(d);}catch(e){renderView('Parsing Error',`<div class="gts-error">A valid response was received, but could not be processed.<br><strong>Error:</strong> ${e.message}<br><br><strong>Raw API Response Text:</strong><pre class="gts-raw-response">${s.responseText||'(empty)'}</pre></div>`,true);}}else{let m=`API Error: ${s.status} - ${s.statusText}`;try{const d=JSON.parse(s.responseText);m+=`<br><br><strong>Details:</strong> ${d.message}`;}catch(e){m+=`<br><br><strong>Raw Response:</strong><br><pre class="gts-raw-response">${s.responseText}</pre>`;}renderView('API Error',`<div class="gts-error">${m}</div>`,true);}},onerror:e=>renderView('Network Error','<div class="gts-error">A network error occurred while fetching details.</div>',true)});}
     createSearchPrompt();
     document.addEventListener('mouseup',e=>{if(e.target.closest('#gts-popup')||e.target.closest('#gts-prompt'))return;setTimeout(()=>{const s=window.getSelection();if(s.type==='Range'&&s.toString().trim().length>0){showSearchPrompt(e.clientX,e.clientY,s.toString().trim());}},50);});
-    document.addEventListener('click',e=>{const p=document.getElementById('gts-prompt');if(p.style.display==='block'&&!e.target.closest('#gts-prompt')){hideSearchPrompt();}});
+document.addEventListener('click',e=>{const p=document.getElementById('gts-prompt');if(p.style.display==='block'&&!e.target.closest('#gts-prompt')){hideSearchPrompt();}});
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        const prompt = document.getElementById('gts-prompt');
+        const popup = document.getElementById('gts-popup');
+        if (e.key === 'Escape') {
+            if (prompt && prompt.style.display === 'block') { hideSearchPrompt(); e.preventDefault(); }
+            else if (popup && popup.style.display !== 'none') { popup.style.display = 'none'; e.preventDefault(); }
+        } else if (e.key === 'Enter') {
+            if (prompt && prompt.style.display === 'block') { document.getElementById('gts-prompt-yes').click(); e.preventDefault(); }
+        }
+    });
 })();
