@@ -1,0 +1,83 @@
+// ==UserScript==
+// @name         Multi-Carrier Tracking Link Converter
+// @namespace    http://tampermonkey.net/
+// @version      2.0
+// @description  Convert UPS, FedEx, USPS, and DHL tracking numbers into clickable links that copy and open tracking pages
+// @author       ilakskills
+// @match        *://*/*
+// @grant        GM_setClipboard
+// ==/UserScript==
+
+(function () {
+    'use strict';
+
+    const patterns = [
+        { name: 'UPS', regex: /\b1Z[0-9A-Z]{16}\b/g, url: num => `https://www.ups.com/track?tracknum=${num}` },
+        { name: 'FedEx', regex: /\b(\d{12}|\d{15})\b/g, url: num => `https://www.fedex.com/fedextrack/?tracknumbers=${num}` },
+        { name: 'USPS', regex: /\b(\d{20,22}|[A-Z]{2}\d{9}US)\b/g, url: num => `https://tools.usps.com/go/TrackConfirmAction?tLabels=${num}` },
+        { name: 'DHL', regex: /\b(\d{10}|JD\d{14,18})\b/g, url: num => `https://www.dhl.com/en/express/tracking.html?AWB=${num}` }
+    ];
+
+    function createLink(trackingNumber, carrier) {
+        const url = carrier.url(trackingNumber);
+        const link = document.createElement('a');
+        link.href = url;
+        link.textContent = trackingNumber;
+        link.target = '_blank';
+        link.style.color = '#0071ce';
+        link.style.textDecoration = 'underline';
+        link.addEventListener('click', () => GM_setClipboard(trackingNumber));
+        return link;
+    }
+
+    function processTextNode(node) {
+        if (node.nodeType !== Node.TEXT_NODE || !node.parentNode || node.parentNode.tagName === 'A') return;
+
+        const text = node.textContent;
+        let lastIndex = 0;
+        const fragment = document.createDocumentFragment();
+        let found = false;
+
+        for (const carrier of patterns) {
+            carrier.regex.lastIndex = 0;
+            let match;
+            while ((match = carrier.regex.exec(text)) !== null) {
+                const trackingNumber = match[0];
+                fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+                fragment.appendChild(createLink(trackingNumber, carrier));
+                lastIndex = carrier.regex.lastIndex;
+                found = true;
+            }
+            if (found) break; // Only replace once per node
+        }
+
+        if (found) {
+            fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+            node.parentNode.replaceChild(fragment, node);
+        }
+    }
+
+    function scanAndReplace(root = document.body) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while ((node = walker.nextNode())) {
+            processTextNode(node);
+        }
+    }
+
+    // Initial scan
+    scanAndReplace();
+
+    // Watch for dynamic content
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    scanAndReplace(node);
+                }
+            });
+        }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+})();
