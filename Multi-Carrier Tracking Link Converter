@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      2.0
 // @description  Convert UPS, FedEx, USPS, and DHL tracking numbers into clickable links that copy and open tracking pages
-// @author       ilakskills
+// @author       ilakskill
 // @match        *://*/*
 // @grant        GM_setClipboard
 // ==/UserScript==
