@@ -3,6 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      2.0
 // @description  Continuously intercept /feed/firehose responses, auto-inject feed details into assignments, handle paging/navigation/DOM updates, and show a live debug overlay.
+// @author       ilakskill
 // @match        https://www.workmarket.com/worker/browse*
 // @run-at       document-start
 // @grant        GM_setValue
